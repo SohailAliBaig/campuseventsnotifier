@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Campus Event Notifier</title>
+    <link rel="stylesheet" href="../static/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Campus Events</span>
+            </div>
+            <div class="nav-menu">
+                <a href="/" class="nav-link">
+                    <i class="fas fa-home"></i> Home
+                </a>
+                <a href="/dashboard" class="nav-link active">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a>
+                <a href="/chat" class="nav-link">
+                    <i class="fas fa-robot"></i> AI Assistant
+                </a>
+                <div class="nav-dropdown">
+                    <button class="nav-dropdown-btn">
+                        <i class="fas fa-user"></i> {{ user.username }}
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="nav-dropdown-content">
+                        <a href="#" class="dropdown-item">
+                            <i class="fas fa-cog"></i> Settings
+                        </a>
+                        <a href="/logout" class="dropdown-item">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="dashboard-main">
+        <div class="dashboard-container">
+            <div class="dashboard-header">
+                <h1>Welcome back, {{ user.username }}! 🎉</h1>
+                <p>Here's what's happening on campus</p>
+            </div>
+
+            <div class="dashboard-stats">
+                <div class="stat-card">
+                    <i class="fas fa-calendar"></i>
+                    <div class="stat-info">
+                        <h3>{{ events|length }}</h3>
+                        <p>Upcoming Events</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-bell"></i>
+                    <div class="stat-info">
+                        <h3>Active</h3>
+                        <p>Notifications</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-robot"></i>
+                    <div class="stat-info">
+                        <h3>24/7</h3>
+                        <p>AI Assistant</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-content">
+                <div class="events-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-calendar-week"></i> Upcoming Events</h2>
+                        <button class="refresh-btn" onclick="location.reload()">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+
+                    <div class="events-grid">
+                        {% for event in events %}
+                        <div class="event-card">
+                            <div class="event-header">
+                                <h3>{{ event.name }}</h3>
+                                <span class="event-date">
+                                    <i class="fas fa-calendar-day"></i>
+                                    {{ event.date }}
+                                </span>
+                            </div>
+                            <div class="event-body">
+                                <p class="event-location">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    {{ event.location }}
+                                </p>
+                                <p class="event-description">{{ event.description }}</p>
+                            </div>
+                            <div class="event-actions">
+                                <button class="btn btn-primary" onclick="askAboutEvent('{{ event.name }}')">
+                                    <i class="fas fa-robot"></i> Ask AI
+                                </button>
+                                <button class="btn btn-secondary">
+                                    <i class="fas fa-bell"></i> Remind Me
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="quick-actions">
+                    <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
+                    <div class="action-buttons">
+                        <a href="/chat" class="action-btn">
+                            <i class="fas fa-robot"></i>
+                            <span>Chat with AI Assistant</span>
+                        </a>
+                        <button class="action-btn" onclick="subscribeToNotifications()">
+                            <i class="fas fa-bell"></i>
+                            <span>Enable Notifications</span>
+                        </button>
+                        <button class="action-btn" onclick="shareEvent()">
+                            <i class="fas fa-share"></i>
+                            <span>Share Event</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function askAboutEvent(eventName) {
+            window.location.href = `/chat?question=${encodeURIComponent('Tell me about ' + eventName)}`;
+        }
+
+        function subscribeToNotifications() {
+            // This would integrate with the notification system
+            alert('Notification preferences would be configured here!');
+        }
+
+        function shareEvent() {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Campus Event',
+                    text: 'Check out this upcoming campus event!',
+                    url: window.location.href
+                });
+            } else {
+                // Fallback for browsers that don't support Web Share API
+                const url = window.location.href;
+                navigator.clipboard.writeText(url).then(() => {
+                    alert('Link copied to clipboard!');
+                });
+            }
+        }
+
+        // Add some interactive animations
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.event-card, .stat-card');
+            cards.forEach((card, index) => {
+                card.style.animationDelay = `${index * 0.1}s`;
+                card.classList.add('fade-in');
+            });
+        });
+    </script>
+</body>
+</html>

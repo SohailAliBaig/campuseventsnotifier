@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Event Notifier</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <div class="logo">CE</div>
+                <span>Campus Events</span>
+            </div>
+            <div class="nav-menu">
+                <a href="/" class="nav-link active">
+                    <i class="fas fa-home"></i> Home
+                </a>
+                <a href="/chat" class="nav-link">
+                    <i class="fas fa-robot"></i> AI Assistant
+                </a>
+                <div class="nav-auth">
+                    <a href="/login" class="nav-link">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </a>
+                    <a href="/register" class="nav-link register-btn">
+                        <i class="fas fa-user-plus"></i> Register
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="home-main">
+        <div class="hero-section">
+            <div class="hero-content">
+                <h1 class="hero-title">
+                    <i class="fas fa-calendar-star"></i>
+                    Never Miss a Campus Event!
+                </h1>
+                <p class="hero-subtitle">
+                    Stay updated with all upcoming events, get personalized recommendations,
+                    and chat with our AI assistant to discover activities that match your interests.
+                </p>
+                <div class="hero-actions">
+                    <a href="/register" class="btn btn-primary">
+                        <i class="fas fa-rocket"></i> Get Started
+                    </a>
+                    <a href="/chat" class="btn btn-secondary">
+                        <i class="fas fa-robot"></i> Try AI Assistant
+                    </a>
+                </div>
+            </div>
+            <div class="hero-image">
+                <i class="fas fa-calendar-alt hero-icon"></i>
+            </div>
+        </div>
+
+        <div class="features-section">
+            <div class="container">
+                <h2 class="section-title">Why Choose Campus Events?</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                        <h3>Smart Notifications</h3>
+                        <p>Get timely reminders about events you're interested in</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <h3>AI Assistant</h3>
+                        <p>Chat with our AI to discover events and get recommendations</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <h3>Real-time Updates</h3>
+                        <p>Always stay informed with the latest event information</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="events-section">
+            <div class="container">
+                <div class="section-header">
+                    <h2><i class="fas fa-calendar-week"></i> Upcoming Events</h2>
+                    <p>Discover exciting events happening on campus</p>
+                </div>
+
+                <div class="events-grid">
+                    {% if events %}
+                        {% for event in events %}
+                        <div class="event-card">
+                            <div class="event-header">
+                                <h3>{{ event.name }}</h3>
+                                <span class="event-date">
+                                    <i class="fas fa-calendar-day"></i>
+                                    {{ event.date }}
+                                </span>
+                            </div>
+                            <div class="event-body">
+                                <p class="event-location">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    {{ event.location }}
+                                </p>
+                                <p class="event-description">{{ event.description }}</p>
+                            </div>
+                            <div class="event-actions">
+                                <button class="btn btn-outline" onclick="askAboutEvent('{{ event.name }}')">
+                                    <i class="fas fa-robot"></i> Ask AI
+                                </button>
+                                <button class="btn btn-primary">
+                                    <i class="fas fa-bell"></i> Get Notified
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p>No upcoming events found.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="newsletter-section">
+            <div class="container">
+                <div class="newsletter-content">
+                    <h2><i class="fas fa-envelope"></i> Stay Updated</h2>
+                    <p>Get notified about new events and updates directly in your inbox</p>
+                    <form action="/subscribe" method="post" class="newsletter-form" enctype="application/x-www-form-urlencoded">
+                        <div class="form-group">
+                            <input
+                                type="email"
+                                name="email"
+                                placeholder="Enter your email address"
+                                required
+                                class="newsletter-input"
+                            >
+                            <button type="submit" class="newsletter-btn">
+                                <i class="fas fa-paper-plane"></i> Subscribe
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Campus Events</span>
+                </div>
+                <div class="footer-links">
+                    <a href="/chat">AI Assistant</a>
+                    <a href="/register">Register</a>
+                    <a href="/login">Login</a>
+                </div>
+                <div class="footer-social">
+                    <a href="#"><i class="fab fa-facebook"></i></a>
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Campus Event Notifier. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function askAboutEvent(eventName) {
+            window.location.href = `/chat?question=${encodeURIComponent('Tell me about ' + eventName)}`;
+        }
+
+        // Add smooth scrolling and animations
+        document.addEventListener('DOMContentLoaded', function() {
+            // Animate elements on scroll
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            };
+
+            const observer = new IntersectionObserver(function(entries) {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('animate-in');
+                    }
+                });
+            }, observerOptions);
+
+            // Observe all cards and sections
+            document.querySelectorAll('.feature-card, .event-card, .hero-content').forEach(el => {
+                observer.observe(el);
+            });
+
+            // Add parallax effect to hero section
+            window.addEventListener('scroll', function() {
+                const scrolled = window.pageYOffset;
+                const heroImage = document.querySelector('.hero-icon');
+                if (heroImage) {
+                    heroImage.style.transform = `translateY(${scrolled * 0.5}px)`;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

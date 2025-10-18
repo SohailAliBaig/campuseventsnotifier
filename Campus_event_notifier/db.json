@@ -1,0 +1,74 @@
+[
+    {
+        "name": "Tech Fest 2024",
+        "date": "2024-12-15",
+        "location": "Auditorium",
+        "description": "A grand technical festival with coding, robotics, and hackathons."
+    },
+    {
+        "name": "Cultural Night",
+        "date": "2024-12-20",
+        "location": "Open Grounds",
+        "description": "An evening filled with music, dance, and cultural performances."
+    },
+    {
+        "name": "Sports Day",
+        "date": "2024-12-25",
+        "location": "Playground",
+        "description": "Inter-college sports competitions and games."
+    },
+    {
+        "name": "AI Workshop",
+        "date": "2025-01-10",
+        "location": "Computer Lab",
+        "description": "Hands-on workshop on Artificial Intelligence and Machine Learning."
+    },
+    {
+        "name": "Career Fair",
+        "date": "2025-01-15",
+        "location": "Convention Center",
+        "description": "Meet top companies and explore career opportunities."
+    },
+    {
+        "name": "Music Concert",
+        "date": "2025-01-20",
+        "location": "Auditorium",
+        "description": "Live music performance by renowned artists."
+    },
+    {
+        "name": "Debate Competition",
+        "date": "2025-01-25",
+        "location": "Seminar Hall",
+        "description": "Inter-college debate on current topics."
+    },
+    {
+        "name": "Art Exhibition",
+        "date": "2025-02-01",
+        "location": "Art Gallery",
+        "description": "Showcase of student artworks and paintings."
+    },
+    {
+        "name": "Science Fair",
+        "date": "2025-02-05",
+        "location": "Science Block",
+        "description": "Display of innovative science projects and experiments."
+    },
+    {
+        "name": "Literature Fest",
+        "date": "2025-02-10",
+        "location": "Library",
+        "description": "Poetry readings, book launches, and literary discussions."
+    },
+    {
+        "name": "Entrepreneurship Summit",
+        "date": "2025-02-15",
+        "location": "Conference Hall",
+        "description": "Talks and workshops on starting and running businesses."
+    },
+    {
+        "name": "Photography Contest",
+        "date": "2025-02-20",
+        "location": "Campus Grounds",
+        "description": "Capture the best moments and win prizes."
+    }
+]
