@@ -4,8 +4,81 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Campus Event Notifier</title>
-    <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Critical CSS inline for faster initial render -->
+    <style>
+        /* Critical path CSS */
+        body { margin: 0; padding: 0; }
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        #loading-indicator {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            z-index: 9999;
+        }
+    </style>
+
+    <!-- Preload critical assets -->
+    <link rel="preload" href="{{ url_for('static', path='style.css') }}" as="style">
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" as="style">
+    
+    <!-- Async CSS loading -->
+    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}" media="print" onload="this.media='all'">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+    
+    <!-- Fallback for no-JS -->
+    <noscript>
+        <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    </noscript>
+
+    <!-- Resource hints -->
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    
+    <!-- Add page load performance script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const loadingIndicator = document.getElementById('loading-indicator');
+            loadingIndicator.style.display = 'none';
+            
+            // Lazy load images and non-critical content
+            const lazyImages = document.querySelectorAll('img[loading="lazy"]');
+            if ('loading' in HTMLImageElement.prototype) {
+                lazyImages.forEach(img => {
+                    img.src = img.dataset.src;
+                });
+            } else {
+                // Fallback for browsers that don't support lazy loading
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/lazysizes/5.3.2/lazysizes.min.js';
+                document.body.appendChild(script);
+            }
+        });
+
+        // Show loading indicator when navigating
+        window.addEventListener('beforeunload', function() {
+            document.getElementById('loading-indicator').style.display = 'block';
+        });
+    </script>
 </head>
 <body>
     <nav class="navbar">
@@ -94,38 +167,54 @@
                     <p>Discover exciting events happening on campus</p>
                 </div>
 
-                <div class="events-grid">
-                    {% if events %}
-                        {% for event in events %}
-                        <div class="event-card">
-                            <div class="event-header">
-                                <h3>{{ event.name }}</h3>
-                                <span class="event-date">
-                                    <i class="fas fa-calendar-day"></i>
-                                    {{ event.date }}
-                                </span>
+                {% if events_by_category %}
+                    {% for category, events in events_by_category.items() %}
+                    <div class="event-category">
+                        <h2 class="category-title">
+                            <i class="fas {% if 'Tech' in category %}fa-laptop-code
+                                      {% elif 'Sports' in category %}fa-running
+                                      {% elif 'Cultural' in category %}fa-camera
+                                      {% elif 'Engineering' in category %}fa-cogs
+                                      {% elif 'Academic' in category %}fa-book
+                                      {% else %}fa-calendar-alt{% endif %}"></i>
+                            {{ category }}
+                        </h2>
+                        <div class="events-grid">
+                            {% for event in events %}
+                            <div class="event-card">
+                                <div class="event-header">
+                                    <h3>{{ event.name }}</h3>
+                                    <span class="event-date">
+                                        <i class="fas fa-calendar-day"></i>
+                                        {{ event.date }}
+                                    </span>
+                                </div>
+                                <div class="event-body">
+                                    <p class="event-location">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                        {{ event.location }}
+                                    </p>
+                                    <p class="event-description">{{ event.description }}</p>
+                                </div>
+                                <div class="event-actions">
+                                    <button class="btn btn-outline" onclick="askAboutEvent('{{ event.name }}')">
+                                        <i class="fas fa-robot"></i> Ask AI
+                                    </button>
+                                    <button class="btn btn-primary">
+                                        <i class="fas fa-bell"></i> Get Notified
+                                    </button>
+                                </div>
                             </div>
-                            <div class="event-body">
-                                <p class="event-location">
-                                    <i class="fas fa-map-marker-alt"></i>
-                                    {{ event.location }}
-                                </p>
-                                <p class="event-description">{{ event.description }}</p>
-                            </div>
-                            <div class="event-actions">
-                                <button class="btn btn-outline" onclick="askAboutEvent('{{ event.name }}')">
-                                    <i class="fas fa-robot"></i> Ask AI
-                                </button>
-                                <button class="btn btn-primary">
-                                    <i class="fas fa-bell"></i> Get Notified
-                                </button>
-                            </div>
+                            {% endfor %}
                         </div>
-                        {% endfor %}
-                    {% else %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="no-events">
+                        <i class="fas fa-calendar-times"></i>
                         <p>No upcoming events found.</p>
-                    {% endif %}
-                </div>
+                    </div>
+                {% endif %}
             </div>
         </div>
 
@@ -134,7 +223,7 @@
                 <div class="newsletter-content">
                     <h2><i class="fas fa-envelope"></i> Stay Updated</h2>
                     <p>Get notified about new events and updates directly in your inbox</p>
-                    <form action="/subscribe" method="post" class="newsletter-form" enctype="application/x-www-form-urlencoded">
+                    <form id="subscribeForm" class="newsletter-form">
                         <div class="form-group">
                             <input
                                 type="email"
@@ -143,15 +232,59 @@
                                 required
                                 class="newsletter-input"
                             >
-                            <button type="submit" class="newsletter-btn">
+                            <button type="submit" class="newsletter-btn" id="subscribeBtn">
                                 <i class="fas fa-paper-plane"></i> Subscribe
                             </button>
                         </div>
+                        <div id="subscribeMessage"></div>
                     </form>
+                    <script>
+                        const subscribeForm = document.getElementById('subscribeForm');
+                        const subscribeBtn = document.getElementById('subscribeBtn');
+                        const messageDiv = document.getElementById('subscribeMessage');
+
+                        subscribeForm.addEventListener('submit', async (e) => {
+                            e.preventDefault();
+                            // Disable button while processing
+                            subscribeBtn.disabled = true;
+                            subscribeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Subscribing...';
+                            messageDiv.innerHTML = '';
+                            const email = e.target.email.value;
+                            const messageDiv = document.getElementById('subscribeMessage');
+                            
+                            try {
+                                const response = await fetch('/subscribe', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({ email: email })
+                                });
+                                
+                                const data = await response.json();
+                                
+                                if (data.success) {
+                                    messageDiv.innerHTML = '<p class="success-message">✅ ' + 
+                                        (data.email_sent ? 'Successfully subscribed! Check your email.' : 'Subscribed successfully!') + '</p>';
+                                    e.target.reset();
+                                } else {
+                                    messageDiv.innerHTML = '<p class="error-message">❌ Subscription failed. Please try again.</p>';
+                                }
+                            } catch (error) {
+                                messageDiv.innerHTML = '<p class="error-message">❌ An error occurred. Please try again later.</p>';
+                                console.error('Error:', error);
+                            }
+                        });
+                    </script>
                 </div>
             </div>
         </div>
     </main>
+
+    <!-- Loading indicator -->
+    <div id="loading-indicator" style="display: none;">
+        <div class="loading-spinner"></div>
+    </div>
 
     <footer class="footer">
         <div class="container">

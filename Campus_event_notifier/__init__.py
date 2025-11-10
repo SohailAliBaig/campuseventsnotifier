@@ -1,0 +1,3 @@
+"""
+Campus Event Notifier Package
+"""

@@ -39,7 +39,7 @@ def ask_agentic_ai(prompt: str) -> str:
 
     try:
         genai.configure(api_key=GEMINI_KEY)
-        model = genai.GenerativeModel("gemini-pro")
+        model = genai.GenerativeModel("gemini-2.0-flash")
         response = model.generate_content(prompt)
         if hasattr(response, "text"):
             return response.text.strip()

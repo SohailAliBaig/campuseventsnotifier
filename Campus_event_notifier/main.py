@@ -8,6 +8,15 @@ import json
 from dotenv import load_dotenv
 import os
 from pathlib import Path
+from datetime import datetime, timedelta
+
+# Import local modules (use package-less imports so module path resolution stays simple)
+from Campus_event_notifier.database import get_db, Event, User
+from Campus_event_notifier.auth import authenticate_user, create_access_token, get_current_active_user, create_user, SECRET_KEY, ALGORITHM
+from Campus_event_notifier.notification import send_notification
+from Campus_event_notifier.agent import ask_agentic_ai
+from Campus_event_notifier.chatbot import get_chatbot_response
+from jose import jwt as jose_jwt
 
 # Load environment variables from both project root and package .env (if present)
 project_root = Path(__file__).parent.parent
@@ -29,23 +38,126 @@ except Exception:
 
 app = FastAPI(title="Campus Event Notifier", version="2.0")
 
-# Mount static files first
+# Set up CORS middleware first
+from fastapi.middleware.cors import CORSMiddleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Mount static files with optimized caching
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.gzip import GZipMiddleware
+
+# Add Gzip compression
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+# Mount static files
 static_path = Path(__file__).parent / "static"
-if static_path.exists():
-    app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
-    print(f"✅ Static files mounted successfully from: {static_path}")
-else:
-    print(f"❌ Static directory not found: {static_path}")
+app.mount("/static", StaticFiles(
+    directory=str(static_path),
+    html=True,
+    check_dir=True
+), name="static")
 
 # Set up templates
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
-from fastapi.middleware.cors import CORSMiddleware
+# Cache for events data
+from fastapi.concurrency import run_in_threadpool
+from cachetools import TTLCache
+import asyncio
+
+# Cache events for 5 minutes
+events_cache = TTLCache(maxsize=100, ttl=300)
 
 # Basic route for home page
 @app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+async def home(request: Request, db: Session = Depends(get_db)):
+    # Try to get events from cache first
+    cache_key = 'upcoming_events'
+    cached_events = events_cache.get(cache_key)
+    
+    if cached_events is not None:
+        return templates.TemplateResponse(
+            "index.html",
+            {"request": request, "events_by_category": cached_events}
+        )
+    
+    # If not in cache, get from database
+    async def get_events():
+        current_time = datetime.now()
+        # Since date is stored as string, we need to filter differently
+        all_events = db.query(Event).order_by(Event.date).limit(20).all()
+        # Filter events that are upcoming (assuming date strings are in future)
+        upcoming_events = []
+        for event in all_events:
+            try:
+                if isinstance(event.date, str):
+                    event_datetime = datetime.strptime(event.date, "%Y-%m-%d %H:%M:%S.%f")
+                else:
+                    event_datetime = event.date
+                if event_datetime >= current_time:
+                    upcoming_events.append(event)
+            except:
+                # If date parsing fails, include the event anyway
+                upcoming_events.append(event)
+        return upcoming_events
+    
+    # Run database query in thread pool
+    events = await run_in_threadpool(lambda: get_events())
+
+    # Use a dictionary for faster category lookup
+    category_map = {
+        'n-block': 'Tech Events',
+        'cricket ground': 'Sports Events',
+        'oat': 'Cultural & Photography Events',
+        'h-block': 'Engineering Events',
+        'library': 'Academic Events'
+    }
+
+    def get_event_category(location):
+        location = location.lower()
+        for key, category in category_map.items():
+            if key in location:
+                return category
+        return 'Other Events'
+
+    # Group events by category
+    events_by_category = {}
+    for event in events:
+        category = get_event_category(event.location)
+        if category not in events_by_category:
+            events_by_category[category] = []
+
+        # Parse date string to datetime for formatting
+        try:
+            if isinstance(event.date, str):
+                event_date = datetime.strptime(event.date, "%Y-%m-%d %H:%M:%S.%f")
+            else:
+                event_date = event.date
+            formatted_date = event_date.strftime("%B %d, %Y")
+        except:
+            formatted_date = event.date  # fallback to raw date
+
+        events_by_category[category].append({
+            "name": event.name,
+            "date": formatted_date,
+            "location": event.location,
+            "description": event.description,
+            "category": category
+        })
+    
+    return templates.TemplateResponse(
+        "index.html", 
+        {
+            "request": request,
+            "events_by_category": events_by_category
+        }
+    )
 
 # Login routes
 @app.get("/login", response_class=HTMLResponse)
@@ -66,63 +178,93 @@ app.add_middleware(
 
 # Subscribe endpoint
 @app.post("/subscribe")
-async def subscribe(email: str = Form(...)):
+async def subscribe(request: Request, form_data: dict = Body(...)):
     try:
+        email = form_data.get("email")
+        if not email:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "message": "Email is required",
+                    "success": False
+                }
+            )
+            
+        # Quick validation before proceeding
+        from email_validator import validate_email, EmailNotValidError
+        try:
+            validate_email(email)
+        except EmailNotValidError:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "message": "Invalid email address",
+                    "success": False
+                }
+            )
+        
+        print(f"📝 Processing subscription for: {email}")
+        
         # Save subscriber to file
         subscriber_file = Path(__file__).parent / "subscribers.txt"
         with open(subscriber_file, "a") as f:
             f.write(f"{email}\n")
+        print(f"✅ Saved subscriber to {subscriber_file}")
         
         # Send welcome email
         subject = "Welcome to Campus Events!"
-        message = """
-        Thank you for subscribing to Campus Events!
-        
-        You'll now receive notifications about:
-        - New campus events
-        - Event updates and changes
-        - Upcoming event reminders
-        
-        Stay tuned for exciting events!
-        
-        Best regards,
-        The Campus Events Team
-        """
+        message = f"""
+Dear Subscriber,
+
+Thank you for subscribing to Campus Events! 🎉
+
+You'll now receive notifications about:
+• New campus events
+• Event updates and changes
+• Upcoming event reminders
+
+Stay tuned for exciting events happening on campus!
+
+Best regards,
+The Campus Events Team
+"""
         
         from Campus_event_notifier.notification import send_notification
-        send_notification(email, subject, message)
+        email_sent = send_notification(email, subject, message)
         
-        # Redirect back to home with success message
-        response = RedirectResponse(url="/", status_code=303)
-        return response
+        if not email_sent:
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "message": "Subscribed successfully, but email notification failed",
+                    "success": True,
+                    "email_sent": False
+                }
+            )
+        
+        return JSONResponse(
+            status_code=200,
+            content={
+                "message": "Subscribed successfully!",
+                "success": True,
+                "email_sent": True
+            }
+        )
+    except Exception as e:
+        print(f"❌ Error in subscription: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Import local modules (use package-less imports so module path resolution stays simple)
-from Campus_event_notifier.database import get_db, Event, User
-from Campus_event_notifier.auth import authenticate_user, create_access_token, get_current_active_user, create_user, SECRET_KEY, ALGORITHM
-from Campus_event_notifier.notification import send_notification
-from Campus_event_notifier.agent import ask_agentic_ai
-from Campus_event_notifier.chatbot import get_chatbot_response
-from jose import jwt as jose_jwt
+async def is_database_empty(db: Session) -> bool:
+    """Check if the events table is empty"""
+    return db.query(Event).count() == 0
 
 # Agentic AI endpoint (JSON)
 @app.post("/agent")
 async def agent_endpoint(prompt: str = Body(..., embed=True)):
     response = ask_agentic_ai(prompt)
     return {"response": response}
-
-# Mount static files - this must be done after app creation
-try:
-    from pathlib import Path
-    static_path = Path(__file__).parent / "static"
-    if static_path.exists():
-        app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
-        print(f"✅ Static files mounted successfully from: {static_path}")
-    else:
-        print(f"❌ Static directory not found: {static_path}")
-except Exception as e:
-    print(f"❌ Error mounting static files: {e}")
 
 # Authentication routes
 @app.get("/login")

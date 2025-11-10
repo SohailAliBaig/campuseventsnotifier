@@ -107,7 +107,7 @@ class EventChatbot:
                 print("⚠️ GEMINI_API_KEY missing when attempting to call Gemini")
                 return "Error: GEMINI API key not configured on server."
             genai.configure(api_key=gem_key)
-            model = genai.GenerativeModel('gemini-2.5-flash')
+            model = genai.GenerativeModel('gemini-2.0-flash')
             response = model.generate_content(prompt)
             if hasattr(response, 'text'):
                 return response.text.strip()
