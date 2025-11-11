@@ -87,8 +87,8 @@ async def home(request: Request, db: Session = Depends(get_db)):
             {"request": request, "events_by_category": cached_events}
         )
     
-    # If not in cache, get from database
-    async def get_events():
+    # Get events from database
+    def get_events():
         current_time = datetime.now()
         # Since date is stored as string, we need to filter differently
         all_events = db.query(Event).order_by(Event.date).limit(20).all()
@@ -108,7 +108,7 @@ async def home(request: Request, db: Session = Depends(get_db)):
         return upcoming_events
     
     # Run database query in thread pool
-    events = await run_in_threadpool(lambda: get_events())
+    events = await run_in_threadpool(get_events)
 
     # Use a dictionary for faster category lookup
     category_map = {
